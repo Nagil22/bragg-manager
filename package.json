@@ -10,9 +10,9 @@
     "start": "concurrently \"npm run start:renderer\" \"npm run start:main\"",
     "build": "npm run build:main && npm run build:renderer",
     "postinstall": "electron-builder install-app-deps",
-    "dist:mac": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --x64",
-    "dist:win": "npm run build && electron-builder --win --x64",
-    "dist": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --win"
+    "dist:mac": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --x64 --publish never",
+    "dist:win": "npm run build && electron-builder --win --x64 --publish never",
+    "dist": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --win --publish never"
   },
   "build": {
     "appId": "com.braggmanager.app",

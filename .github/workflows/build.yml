@@ -14,8 +14,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Fix distutils (removed in Python 3.12, required by node-gyp)
-        run: pip install setuptools
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Create adminSecret
         run: |
           cat > src/main/adminSecret.ts << 'EOF'
@@ -37,8 +38,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Fix distutils (removed in Python 3.12, required by node-gyp)
-        run: pip install setuptools
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Create adminSecret
         shell: pwsh
         run: |
