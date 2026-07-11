@@ -15,6 +15,7 @@ jobs:
         with:
           node-version: 20
       - uses: actions/setup-python@v5
+        id: setup-py
         with:
           python-version: '3.11'
       - name: Create adminSecret
@@ -23,9 +24,11 @@ jobs:
           export const ADMIN_PASSWORD = '${{ secrets.ADMIN_PASSWORD }}';
           EOF
       - run: npm ci
-      - run: npm run dist:mac
+      - name: Package
+        run: npm run build && npx electron-builder --mac --arm64 --x64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          PYTHON: ${{ steps.setup-py.outputs.python-path }}
       - uses: actions/upload-artifact@v4
         with:
           name: mac-dmg
@@ -38,15 +41,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
       - name: Create adminSecret
         shell: pwsh
         run: |
           Set-Content -Path src/main/adminSecret.ts -Value "export const ADMIN_PASSWORD = '${{ secrets.ADMIN_PASSWORD }}';"
       - run: npm ci
-      - run: npm run dist:win
+      - name: Package
+        run: npm run build && npx electron-builder --win --x64 --publish never
       - uses: actions/upload-artifact@v4
         with:
           name: win-exe
