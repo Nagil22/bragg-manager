@@ -3,7 +3,7 @@ import { COLORS, FONT } from './constants';
 import Icon from './Icon';
 
 const GUMROAD_URL = 'https://nagil.gumroad.com/l/braggmanager';
-const PRICE = '₦15,000 / $13';
+const PRICE = '₦18,000 / $13';
 
 interface Props {
   scansUsed: number;

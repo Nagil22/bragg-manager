@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('storeSmartAPI', {
     ipcRenderer.invoke('detect-drive'),
   moveToDrive: (files: FileMeta[], driveMountPoint: string): Promise<any> =>
     ipcRenderer.invoke('move-to-drive', files, driveMountPoint),
+  aiMoveToDrive: (recs: Recommendation[], driveMountPoint: string): Promise<{ success: boolean; moved: number; failed: Array<{ file: string; error: string }> }> =>
+    ipcRenderer.invoke('ai-move-to-drive', recs, driveMountPoint),
 
   // Actions
   executeAction: (action: StorageAction, destination?: string): Promise<{ success: boolean; message: string }> =>
@@ -54,6 +56,14 @@ contextBridge.exposeInMainWorld('storeSmartAPI', {
   },
   offDriveMoveProgress: (handler: (event: any, done: number, total: number) => void): void => {
     ipcRenderer.removeListener('drive-move-progress', handler);
+  },
+
+  // AI auto-arrange progress events
+  onAIDriveProgress: (handler: (event: any, done: number, total: number, currentFile: string) => void): void => {
+    ipcRenderer.on('ai-drive-progress', handler);
+  },
+  offAIDriveProgress: (handler: (event: any, done: number, total: number, currentFile: string) => void): void => {
+    ipcRenderer.removeListener('ai-drive-progress', handler);
   },
 
   // Onboarding

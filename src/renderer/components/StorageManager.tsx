@@ -597,7 +597,10 @@ export default function StorageManager() {
       <div style={{ display: !isScanning && nav === 'drive' ? 'flex' : 'none', flexDirection: 'column', height: '100%', padding: '24px 28px' }}>
         <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', marginBottom: 20 }}>External Drive</h1>
         <div style={{ maxWidth: 360 }}>
-          <ExternalDrivePanel />
+          <ExternalDrivePanel
+            aiRecs={displayedRecs}
+            onFilesArchived={ids => removeFiles(ids)}
+          />
         </div>
       </div>
     </div>

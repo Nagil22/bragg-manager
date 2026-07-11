@@ -27,6 +27,10 @@ declare global {
         files: FileMeta[],
         driveMountPoint: string
       ) => Promise<{ success: boolean; moved: number; failed: Array<{ file: string; error: string }> }>;
+      aiMoveToDrive: (
+        recs: Recommendation[],
+        driveMountPoint: string
+      ) => Promise<{ success: boolean; moved: number; failed: Array<{ file: string; error: string }> }>;
 
       // Actions
       executeAction: (action: StorageAction, destination?: string) => Promise<{ success: boolean; message: string }>;
@@ -50,6 +54,10 @@ declare global {
       // Drive move progress
       onDriveMoveProgress:  (handler: (event: any, done: number, total: number) => void) => void;
       offDriveMoveProgress: (handler: (event: any, done: number, total: number) => void) => void;
+
+      // AI auto-arrange progress
+      onAIDriveProgress:  (handler: (event: any, done: number, total: number, currentFile: string) => void) => void;
+      offAIDriveProgress: (handler: (event: any, done: number, total: number, currentFile: string) => void) => void;
 
       // Onboarding
       getOnboarded: () => Promise<boolean>;

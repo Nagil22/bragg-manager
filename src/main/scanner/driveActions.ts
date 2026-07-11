@@ -1,4 +1,4 @@
-import { StorageAction, DriveInfo, FileMeta } from '../../shared/types';
+import { StorageAction, DriveInfo, FileMeta, Recommendation } from '../../shared/types';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -88,6 +88,84 @@ export function getDriveDestDir(file: FileMeta, driveMount: string): string {
   const folder = TYPE_FOLDER[file.type] ?? 'Other';
   return path.join(driveMount, folder, String(year));
 }
+
+// ── AI-guided drive archive ───────────────────────────────────────────────────
+
+/**
+ * Resolve an AI-suggested absolute path (e.g. "/Volumes/MyDrive/Old Videos")
+ * to a path rooted at the actual drive mount point.
+ * Strips leading /Volumes/<name> (macOS) or <DriveLetter>:\ (Windows).
+ */
+function resolveAISuggestedPath(suggestedFolder: string, driveMount: string): string {
+  const normalised = suggestedFolder.replace(/\\/g, '/');
+  const parts      = normalised.split('/').filter(Boolean);
+
+  if (parts.length >= 2 && parts[0].toLowerCase() === 'volumes') {
+    // /Volumes/<driveName>/relative/path
+    const relative = parts.slice(2).join('/');
+    return relative ? path.join(driveMount, relative) : driveMount;
+  }
+  if (parts.length >= 1 && /^[A-Za-z]:/.test(parts[0])) {
+    // D:/relative/path
+    const relative = parts.slice(1).join('/');
+    return relative ? path.join(driveMount, relative) : driveMount;
+  }
+  // Already relative
+  return path.join(driveMount, suggestedFolder);
+}
+
+export async function moveWithAISuggestions(
+  recs: Recommendation[],
+  driveMountPoint: string,
+  onProgress?: (done: number, total: number, currentFile: string) => void
+): Promise<{ success: boolean; moved: number; failed: Array<{ file: string; error: string }> }> {
+  const failed: Array<{ file: string; error: string }> = [];
+  let moved = 0;
+
+  const pairs = recs
+    .filter(r => r.type === 'move')
+    .flatMap(r => r.files.map(f => ({ file: f, rec: r })));
+
+  for (const { file, rec } of pairs) {
+    try {
+      const destDir = rec.suggestedFolder
+        ? resolveAISuggestedPath(rec.suggestedFolder, driveMountPoint)
+        : getDriveDestDir(file, driveMountPoint);
+
+      // Collision-safe name
+      let destName = file.name;
+      let destPath = path.join(destDir, destName);
+      let counter  = 1;
+      while (await fs.pathExists(destPath)) {
+        const ext  = path.extname(file.name);
+        const base = path.basename(file.name, ext);
+        destName   = `${base}_${counter}${ext}`;
+        destPath   = path.join(destDir, destName);
+        counter++;
+      }
+
+      await fs.mkdirp(destDir);
+      await fs.copy(file.path, destPath);
+
+      // Verify before deleting original
+      const [srcStat, dstStat] = await Promise.all([fs.stat(file.path), fs.stat(destPath)]);
+      if (srcStat.size !== dstStat.size) {
+        await fs.remove(destPath);
+        throw new Error('Copy verification failed: size mismatch');
+      }
+
+      await fs.remove(file.path);
+      moved++;
+      onProgress?.(moved, pairs.length, file.name);
+    } catch (err: any) {
+      failed.push({ file: file.name, error: err.message });
+    }
+  }
+
+  return { success: failed.length === 0, moved, failed };
+}
+
+// ── Bulk drive archive — type/year organised ─────────────────────────────────
 
 export async function moveToDrive(
   files: FileMeta[],

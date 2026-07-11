@@ -9,9 +9,10 @@
     "start:renderer": "webpack serve --mode development",
     "start": "concurrently \"npm run start:renderer\" \"npm run start:main\"",
     "build": "npm run build:main && npm run build:renderer",
-    "dist:mac": "npm run build && electron-builder --mac --arm64 --x64",
+    "postinstall": "electron-rebuild -f",
+    "dist:mac": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --x64",
     "dist:win": "npm run build && electron-builder --win --x64",
-    "dist": "npm run build && electron-builder --mac --win"
+    "dist": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --win"
   },
   "build": {
     "appId": "com.braggmanager.app",
@@ -30,10 +31,8 @@
       "target": [
         { "target": "dmg", "arch": ["arm64", "x64"] }
       ],
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
     },
     "win": {
       "icon": "assets/icon.ico",

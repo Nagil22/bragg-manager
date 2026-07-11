@@ -1,6 +1,7 @@
 import { FileMeta, Recommendation } from '../../shared/types';
 
-const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+const ONE_YEAR_MS  = 365 * 24 * 60 * 60 * 1000;
+const THIRTY_DAY_MS = 30 * 24 * 60 * 60 * 1000;
 const LARGE_FILE_THRESHOLD = 500 * 1024 * 1024;
 
 export function getRuleRecommendations(files: FileMeta[]): Recommendation[] {
@@ -71,14 +72,14 @@ export function getRuleRecommendations(files: FileMeta[]): Recommendation[] {
     });
   }
 
-  // Junk / temp
-  const junkFiles = files.filter(f => f.type === 'temp');
+  // Junk / temp — only flag files not modified in the last 30 days
+  const junkFiles = files.filter(f => f.type === 'temp' && Date.now() - f.mtime > THIRTY_DAY_MS);
   if (junkFiles.length) {
     recs.push({
       id: 'junk-files',
       type: 'delete',
       title: 'Cache & Temp Files',
-      description: `${junkFiles.length} temporary or log files`,
+      description: `${junkFiles.length} temporary or log files untouched for 30+ days`,
       action: 'Delete Now',
       size: formatBytes(sumSize(junkFiles)),
       sizeBytes: sumSize(junkFiles),

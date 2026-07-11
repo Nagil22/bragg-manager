@@ -5,7 +5,7 @@ import * as fse from 'fs-extra';
 import { scanDirectory, ScanCancelledError } from './scanner/fileScanner';
 import { getRuleRecommendations }             from './engine/ruleEngine';
 import { enhanceWithAI }                      from './engine/aiEnhancer';
-import { detectDrive, executeAction, moveToDrive } from './scanner/driveActions';
+import { detectDrive, executeAction, moveToDrive, moveWithAISuggestions } from './scanner/driveActions';
 import { getApiKey, setApiKey, clearApiKey }  from './config';
 import { getLicenseState, activateLicense, incrementScanCount, resetScanCount, setProMode } from './license';
 import { ADMIN_PASSWORD } from './adminSecret';
@@ -67,6 +67,16 @@ export function registerIpcHandlers(): void {
   ): Promise<{ success: boolean; moved: number; failed: Array<{ file: string; error: string }> }> => {
     return moveToDrive(files, driveMountPoint, (done, total) => {
       event.sender.send('drive-move-progress', done, total);
+    });
+  });
+
+  ipcMain.handle('ai-move-to-drive', async (
+    event: IpcMainInvokeEvent,
+    recs: Recommendation[],
+    driveMountPoint: string
+  ): Promise<{ success: boolean; moved: number; failed: Array<{ file: string; error: string }> }> => {
+    return moveWithAISuggestions(recs, driveMountPoint, (done, total, currentFile) => {
+      event.sender.send('ai-drive-progress', done, total, currentFile);
     });
   });
 
