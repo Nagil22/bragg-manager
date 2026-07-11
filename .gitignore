@@ -1,0 +1,49 @@
+# ── Secrets — NEVER commit ──────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+src/main/adminSecret.ts   # gitignored — copy adminSecret.example.ts and set password
+
+# ── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Build output ─────────────────────────────────────────────────────────────
+dist/
+dist-main/
+dist-renderer/
+out/
+.webpack/
+
+# ── Packager output ───────────────────────────────────────────────────────────
+release/
+build/mac*/
+build/win*/
+build/linux*/
+*.dmg
+*.exe
+*.AppImage
+*.deb
+*.rpm
+*.snap
+
+# ── TypeScript cache ─────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+Thumbs.db
+Desktop.ini
+
+# ── Editor ───────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── Internal dev notes (not for public) ──────────────────────────────────────
+TESTING_GUIDE.md

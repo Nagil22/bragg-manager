@@ -1,0 +1,94 @@
+{
+  "name": "bragg-manager",
+  "version": "1.0.0",
+  "main": "dist-main/main/main.js",
+  "scripts": {
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "webpack --mode production",
+    "start:main": "tsc -p tsconfig.main.json && electron .",
+    "start:renderer": "webpack serve --mode development",
+    "start": "concurrently \"npm run start:renderer\" \"npm run start:main\"",
+    "build": "npm run build:main && npm run build:renderer",
+    "dist:mac": "npm run build && electron-builder --mac --arm64 --x64",
+    "dist:win": "npm run build && electron-builder --win --x64",
+    "dist": "npm run build && electron-builder --mac --win"
+  },
+  "build": {
+    "appId": "com.braggmanager.app",
+    "productName": "Bragg Manager",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-main/**/*",
+      "dist-renderer/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "assets/icon.icns",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "dmg": {
+      "title": "Bragg Manager",
+      "background": "assets/dmg-background.png",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ],
+      "window": { "width": 540, "height": 380 }
+    }
+  },
+  "productName": "Bragg Manager",
+  "keywords": [],
+  "author": "Bragg Manager",
+  "license": "ISC",
+  "description": "Intelligent storage manager for macOS and Windows",
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.5",
+    "@babel/preset-react": "^7.28.5",
+    "@electron/rebuild": "^4.0.4",
+    "@types/drivelist": "^6.4.4",
+    "@types/electron": "^1.4.38",
+    "@types/fs-extra": "^11.0.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/uuid": "^10.0.0",
+    "babel-loader": "^10.1.1",
+    "concurrently": "^9.2.1",
+    "electron": "^42.1.0",
+    "electron-builder": "^25.1.8",
+    "html-webpack-plugin": "^5.6.7",
+    "ts-loader": "^9.5.7",
+    "typescript": "^6.0.3",
+    "webpack": "^5.106.2",
+    "webpack-cli": "^7.0.2",
+    "webpack-dev-server": "^5.2.4"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "drivelist": "^12.0.2",
+    "fs-extra": "^11.3.5",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "uuid": "^14.0.0"
+  }
+}
