@@ -36,7 +36,7 @@ jobs:
           path: release/*.dmg
 
   build-win:
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,6 +47,9 @@ jobs:
         run: |
           Set-Content -Path src/main/adminSecret.ts -Value "export const ADMIN_PASSWORD = '${{ secrets.ADMIN_PASSWORD }}';"
       - run: npm ci --ignore-scripts
+      - name: Use newer @electron/rebuild (supports VS 2022)
+        shell: pwsh
+        run: Remove-Item -Recurse -Force node_modules/app-builder-lib/node_modules/@electron
       - name: Package
         run: npm run build && npx electron-builder --win --x64 --publish never
       - uses: actions/upload-artifact@v4
