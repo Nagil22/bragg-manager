@@ -46,7 +46,7 @@
       "createDesktopShortcut": true
     },
     "dmg": {
-      "title": "Bragg Manager",
+      "title": "Bragg Manager ${arch}",
       "background": "assets/dmg-background.png",
       "contents": [
         { "x": 130, "y": 220 },
