@@ -14,28 +14,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: actions/setup-python@v5
-        id: setup-py
-        with:
-          python-version: '3.11'
       - name: Create adminSecret
         run: |
           cat > src/main/adminSecret.ts << 'EOF'
           export const ADMIN_PASSWORD = '${{ secrets.ADMIN_PASSWORD }}';
           EOF
       - run: npm ci --ignore-scripts
+      - name: Use root node-gyp in app-builder-lib
+        run: rm -rf node_modules/app-builder-lib/node_modules/node-gyp
       - name: Build
         run: npm run build
       - name: Package x64
         run: npx electron-builder --mac --x64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          PYTHON: ${{ steps.setup-py.outputs.python-path }}
       - name: Package arm64
         run: npx electron-builder --mac --arm64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          PYTHON: ${{ steps.setup-py.outputs.python-path }}
       - uses: actions/upload-artifact@v4
         with:
           name: mac-dmg
@@ -53,14 +49,9 @@ jobs:
         run: |
           Set-Content -Path src/main/adminSecret.ts -Value "export const ADMIN_PASSWORD = '${{ secrets.ADMIN_PASSWORD }}';"
       - run: npm ci --ignore-scripts
-      - name: Upgrade node-gyp in app-builder-lib to support VS 2022
+      - name: Use root node-gyp in app-builder-lib
         shell: pwsh
-        run: |
-          npm install -g node-gyp@10
-          $ngGlobal = Join-Path (npm root -g) "node-gyp"
-          $ngTarget = "node_modules\app-builder-lib\node_modules\node-gyp"
-          Remove-Item -Recurse -Force $ngTarget
-          Copy-Item -Recurse $ngGlobal $ngTarget
+        run: Remove-Item -Recurse -Force node_modules\app-builder-lib\node_modules\node-gyp
       - name: Package
         run: npm run build && npx electron-builder --win --x64 --publish never
       - uses: actions/upload-artifact@v4
