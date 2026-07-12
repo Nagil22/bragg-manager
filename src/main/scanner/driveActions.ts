@@ -1,46 +1,71 @@
 import { StorageAction, DriveInfo, FileMeta, Recommendation } from '../../shared/types';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { exec } from 'child_process';
 
 // ── Drive detection ──────────────────────────────────────────────────────────
 
-export async function detectDrive(): Promise<DriveInfo | null> {
-  const drivelist = require('drivelist');
-  const drives = await drivelist.list();
+async function getStatfs(mountPath: string): Promise<{ total: number; free: number } | null> {
+  try {
+    const stats: any = await new Promise((resolve, reject) => {
+      (fs as any).statfs(mountPath, (err: any, s: any) => (err ? reject(err) : resolve(s)));
+    });
+    return { total: stats.bsize * stats.blocks, free: stats.bsize * stats.bfree };
+  } catch { return null; }
+}
 
-  const target = drives.find((d: any) => {
-    if (d.isSystem) return false;
-    if (d.mountpoints.length === 0) return false;
-    return d.isRemovable || d.isUSB;
-  });
+async function detectDriveMac(): Promise<DriveInfo | null> {
+  let rootDev: number;
+  try { rootDev = (await fs.stat('/')).dev; } catch { return null; }
 
-  if (!target) return null;
+  let names: string[];
+  try { names = await fs.readdir('/Volumes'); } catch { return null; }
 
-  let bestMount = target.mountpoints[0];
-  let bestFree  = 0;
-  let totalCap  = 0;
-
-  for (const mp of target.mountpoints) {
+  for (const name of names) {
+    const mountPath = `/Volumes/${name}`;
     try {
-      const stats = await (fs.promises?.statfs
-        ? fs.promises.statfs(mp.path)
-        : new Promise<any>((resolve, reject) => {
-            fs.statfs(mp.path, (err: any, s: any) => (err ? reject(err) : resolve(s)));
-          })
-      );
-      const free  = stats.bsize * stats.bfree;
-      const total = stats.bsize * stats.blocks;
-      if (free > bestFree) { bestFree = free; bestMount = { ...mp }; totalCap = total; }
-    } catch { /* skip inaccessible */ }
+      const stat = await fs.stat(mountPath);
+      if (stat.dev === rootDev) continue; // same device as / → system volume
+      const space = await getStatfs(mountPath);
+      if (!space) continue;
+      return { name, mountPoint: mountPath, capacity: space.total, free: space.free, isRemovable: true };
+    } catch { continue; }
   }
+  return null;
+}
 
-  return {
-    name:        target.description || 'External Drive',
-    mountPoint:  bestMount.path,
-    capacity:    totalCap || target.size || 0,
-    free:        bestFree,
-    isRemovable: target.isRemovable || target.isUSB || false,
-  };
+async function detectDriveWin(): Promise<DriveInfo | null> {
+  return new Promise(resolve => {
+    exec(
+      'wmic logicaldisk get DeviceId,DriveType,FreeSpace,Size,VolumeName /format:csv',
+      { timeout: 8000 },
+      (_err: any, stdout: string) => {
+        if (!stdout) { resolve(null); return; }
+        const lines = stdout.trim().split(/\r?\n/).filter(l => l.trim() && !l.startsWith('Node'));
+        for (const line of lines) {
+          const [, deviceId, driveType, freeSpace, size, volumeName] = line.split(',').map(s => s.trim());
+          if (!deviceId || deviceId.toUpperCase() === 'C:') continue;
+          if (driveType === '5') continue; // CD-ROM
+          if (!size || size === '0') continue;
+          resolve({
+            name: volumeName || deviceId,
+            mountPoint: deviceId + '\\',
+            capacity: parseInt(size) || 0,
+            free: parseInt(freeSpace) || 0,
+            isRemovable: driveType === '2',
+          });
+          return;
+        }
+        resolve(null);
+      }
+    );
+  });
+}
+
+export async function detectDrive(): Promise<DriveInfo | null> {
+  if (process.platform === 'darwin') return detectDriveMac();
+  if (process.platform === 'win32') return detectDriveWin();
+  return null;
 }
 
 // ── Single-rec action (move / delete) ───────────────────────────────────────
