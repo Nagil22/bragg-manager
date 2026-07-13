@@ -53,3 +53,44 @@ jobs:
         with:
           name: win-exe
           path: release/*.exe
+
+  release:
+    needs: [build-mac, build-win]
+    runs-on: ubuntu-latest
+    # Only create a release when triggered by a version tag, not workflow_dispatch
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mac-dmg
+          path: artifacts/mac
+      - uses: actions/download-artifact@v4
+        with:
+          name: win-exe
+          path: artifacts/win
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Bragg Manager ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          body: |
+            ## Download
+
+            | Platform | File |
+            |----------|------|
+            | macOS (Apple Silicon) | `*-arm64.dmg` |
+            | macOS (Intel) | `*.dmg` (without arm64) |
+            | Windows 10/11 | `*.exe` |
+
+            **macOS note:** If you see "damaged and can't be opened", open Terminal and run:
+            ```
+            xattr -cr /Applications/Bragg\ Manager.app
+            ```
+          files: |
+            artifacts/mac/*.dmg
+            artifacts/win/*.exe
