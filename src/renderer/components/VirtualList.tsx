@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, memo } from 'react';
 
 interface Props<T> {
   items:              T[];
@@ -11,7 +11,7 @@ interface Props<T> {
   scrollToTopSignal?: number; // increment this value from outside to trigger scroll-to-top
 }
 
-export default function VirtualList<T>({
+function VirtualList<T>({
   items, itemHeight, height, overscan = 5,
   renderItem, keyExtractor, onScroll: onScrollProp, scrollToTopSignal,
 }: Props<T>) {
@@ -63,3 +63,5 @@ export default function VirtualList<T>({
     </div>
   );
 }
+
+export default memo(VirtualList) as typeof VirtualList;

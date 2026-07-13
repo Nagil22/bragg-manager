@@ -10,6 +10,37 @@ const FILE_ICONS: Record<string, string> = {
   archive: '📦', document: '📄', diskimage: '💿', temp: '🧹', other: '📁',
 };
 
+// Memoised so VirtualList doesn't re-render unchanged rows
+const ListRow = React.memo(function ListRow({ file }: { file: FileMeta }) {
+  const ageDays = Math.round((Date.now() - file.mtime) / 86_400_000);
+  const isLarge = file.size > 500 * 1024 * 1024;
+  const isOld   = ageDays > 365;
+  return (
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', height: LIST_ITEM_H, borderBottom: `1px solid ${COLORS.border}`, transition: 'background 0.1s' }}
+      onMouseEnter={e => (e.currentTarget.style.background = COLORS.surfaceHover)}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      <span style={{ fontSize: 18, flexShrink: 0, width: 24, textAlign: 'center' }}>
+        {FILE_ICONS[file.type] ?? '📁'}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: COLORS.textPrimary, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {file.name}
+        </div>
+        <div style={{ color: COLORS.textMuted, fontSize: 10, marginTop: 2 }}>
+          {file.type} · {ageDays === 0 ? 'Today' : ageDays === 1 ? 'Yesterday' : `${ageDays}d ago`}
+        </div>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 500, color: COLORS.textSecondary, fontFamily: FONT.mono, flexShrink: 0 }}>
+        {formatFileSize(file.size)}
+      </div>
+      {isLarge && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, fontWeight: 700, background: COLORS.redDim, color: COLORS.red, flexShrink: 0, letterSpacing: '0.04em' }}>LARGE</span>}
+      {!isLarge && isOld && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, fontWeight: 700, background: COLORS.blueDim, color: COLORS.blue, flexShrink: 0, letterSpacing: '0.04em' }}>OLD</span>}
+    </div>
+  );
+});
+
 const TYPE_OPTIONS = ['All Types', 'Video', 'Photo', 'Document', 'Audio', 'Archive', 'Temp', 'Other'];
 const LIST_ITEM_H  = 52;
 const GRID_COLS    = 5;
@@ -26,18 +57,16 @@ export default function FileBrowserTab({ files }: Props) {
   const [typeFilter,      setTypeFilter]       = useState('All Types');
   const [sortBy,          setSortBy]           = useState<SortBy>('size');
   const [viewMode,        setViewMode]         = useState<ViewMode>('list');
-  const [listHeight,      setListHeight]       = useState(400);
+  const [containerHeight, setContainerHeight]  = useState(400);
   const [showBackToTop,   setShowBackToTop]    = useState(false);
   const [scrollToTopSig,  setScrollToTopSig]   = useState(0);
-  const listContainerRef  = useRef<HTMLDivElement>(null);
-  // For grid mode back-to-top (not via VirtualList — it's a regular div)
-  const gridContainerRef  = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Measure available height
+  // Measure the single shared container — always visible, always correct
   useEffect(() => {
-    const el = listContainerRef.current;
+    const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(entries => setListHeight(entries[0].contentRect.height));
+    const ro = new ResizeObserver(entries => setContainerHeight(entries[0].contentRect.height));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -46,16 +75,8 @@ export default function FileBrowserTab({ files }: Props) {
     setShowBackToTop(top > 300);
   }, []);
 
-  const handleGridScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setShowBackToTop((e.currentTarget as HTMLDivElement).scrollTop > 300);
-  }, []);
-
   const scrollToTop = () => {
-    if (viewMode === 'list') {
-      setScrollToTopSig(s => s + 1);
-    } else {
-      gridContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    setScrollToTopSig(s => s + 1);
     setShowBackToTop(false);
   };
 
@@ -153,83 +174,46 @@ export default function FileBrowserTab({ files }: Props) {
         </div>
       </div>
 
-      {/* Empty state */}
-      {filtered.length === 0 && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.textMuted, fontSize: 13 }}>
-          No files match your search.
-        </div>
-      )}
+      {/* ── Single shared container — ResizeObserver always fires ── */}
+      <div ref={containerRef} style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
 
-      {/* ── LIST view ──────────────────────────────────────────────── */}
-      <div ref={listContainerRef} style={{ display: viewMode === 'list' && filtered.length > 0 ? 'block' : 'none', flex: 1, minHeight: 0 }}>
-        <VirtualList
-          items={filtered}
-          itemHeight={LIST_ITEM_H}
-          height={listHeight}
-          keyExtractor={f => f.id}
-          onScroll={handleScrollTop}
-          scrollToTopSignal={scrollToTopSig}
-          renderItem={file => {
-            const ageDays = Math.round((Date.now() - file.mtime) / 86_400_000);
-            const isLarge = file.size > 500 * 1024 * 1024;
-            const isOld   = ageDays > 365;
-            return (
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', height: LIST_ITEM_H, borderBottom: `1px solid ${COLORS.border}`, transition: 'background 0.1s' }}
-                onMouseEnter={e => (e.currentTarget.style.background = COLORS.surfaceHover)}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span style={{ fontSize: 18, flexShrink: 0, width: 24, textAlign: 'center' }}>
-                  {FILE_ICONS[file.type] ?? '📁'}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: COLORS.textPrimary, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {file.name}
-                  </div>
-                  <div style={{ color: COLORS.textMuted, fontSize: 10, marginTop: 2 }}>
-                    {file.type} · {ageDays === 0 ? 'Today' : ageDays === 1 ? 'Yesterday' : `${ageDays}d ago`}
-                  </div>
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 500, color: COLORS.textSecondary, fontFamily: FONT.mono, flexShrink: 0 }}>
-                  {formatFileSize(file.size)}
-                </div>
-                {isLarge && (
-                  <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, fontWeight: 700, background: COLORS.redDim, color: COLORS.red, flexShrink: 0, letterSpacing: '0.04em' }}>LARGE</span>
-                )}
-                {!isLarge && isOld && (
-                  <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, fontWeight: 700, background: COLORS.blueDim, color: COLORS.blue, flexShrink: 0, letterSpacing: '0.04em' }}>OLD</span>
-                )}
+        {filtered.length === 0 && (
+          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.textMuted, fontSize: 13 }}>
+            No files match your search.
+          </div>
+        )}
+
+        {/* LIST */}
+        {viewMode === 'list' && filtered.length > 0 && (
+          <VirtualList
+            items={filtered}
+            itemHeight={LIST_ITEM_H}
+            height={containerHeight}
+            keyExtractor={f => f.id}
+            onScroll={handleScrollTop}
+            scrollToTopSignal={scrollToTopSig}
+            renderItem={file => <ListRow file={file} />}
+          />
+        )}
+
+        {/* GRID */}
+        {viewMode === 'grid' && filtered.length > 0 && (
+          <VirtualList
+            items={gridRows}
+            itemHeight={GRID_ROW_H}
+            height={containerHeight}
+            keyExtractor={(row, i) => `row-${i}-${row[0]?.id}`}
+            onScroll={handleScrollTop}
+            scrollToTopSignal={scrollToTopSig}
+            renderItem={row => (
+              <div style={{ display: 'flex', gap: 10, padding: '0 16px 10px' }}>
+                {row.map(file => (
+                  <FileThumbnail key={file.id} file={file} size={THUMB_SIZE} showLabel />
+                ))}
               </div>
-            );
-          }}
-        />
-      </div>
-
-      {/* ── GRID view ──────────────────────────────────────────────── */}
-      <div
-        ref={gridContainerRef}
-        onScroll={handleGridScroll}
-        style={{
-          display: viewMode === 'grid' && filtered.length > 0 ? 'block' : 'none',
-          flex: 1, minHeight: 0, overflowY: 'auto',
-          padding: '14px 16px',
-        }}
-      >
-        <VirtualList
-          items={gridRows}
-          itemHeight={GRID_ROW_H}
-          height={listHeight}
-          keyExtractor={(row, i) => `row-${i}-${row[0]?.id}`}
-          onScroll={handleScrollTop}
-          scrollToTopSignal={viewMode === 'grid' ? scrollToTopSig : 0}
-          renderItem={row => (
-            <div style={{ display: 'flex', gap: 10, paddingBottom: 10 }}>
-              {row.map(file => (
-                <FileThumbnail key={file.id} file={file} size={THUMB_SIZE} showLabel />
-              ))}
-            </div>
-          )}
-        />
+            )}
+          />
+        )}
       </div>
 
       {/* Back to top */}
