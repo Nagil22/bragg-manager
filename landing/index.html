@@ -398,6 +398,15 @@
   <h2 class="section-title" style="margin-bottom: 36px;">Common questions</h2>
   <div class="faq">
     <div class="faq-item">
+      <div class="faq-q">macOS says "Bragg Manager is damaged and can't be opened" — what do I do?</div>
+      <div class="faq-a">This is a macOS security warning for apps not signed with a paid Apple Developer certificate — the app is not actually damaged. On macOS 15 (Sequoia) the "Open Anyway" button no longer appears, so you need one Terminal command to clear the quarantine flag:<br><br>
+      1. Open <strong>Terminal</strong> (search Spotlight for "Terminal")<br>
+      2. Paste this and press Enter:<br>
+      <code style="display:block;background:rgba(255,255,255,0.07);padding:8px 12px;border-radius:6px;margin:8px 0;font-size:12px;">xattr -cr /Applications/Bragg\ Manager.app</code>
+      3. Open Bragg Manager normally — it will launch.<br><br>
+      You only need to do this once. On macOS 13–14 you can instead go to <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong> after the first blocked attempt.</div>
+    </div>
+    <div class="faq-item">
       <div class="faq-q">Will it delete my files without asking?</div>
       <div class="faq-a">No. Bragg Manager always shows you exactly what it will remove before anything is touched. You approve every action. Deleting a batch of more than 5 files triggers an extra confirmation.</div>
     </div>
