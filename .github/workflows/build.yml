@@ -23,11 +23,17 @@ jobs:
       - name: Build
         run: npm run build
       - name: Package x64
-        run: npx electron-builder --mac --x64 --publish never
+        run: |
+          mkdir -p release
+          touch "release/com.braggmanager.app.pkg"
+          npx electron-builder --mac --x64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - name: Package arm64
-        run: npx electron-builder --mac --arm64 --publish never
+        run: |
+          mkdir -p release
+          touch "release/com.braggmanager.app.pkg"
+          npx electron-builder --mac --arm64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - uses: actions/upload-artifact@v4
