@@ -33,7 +33,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mac-dmg
-          path: release/*.dmg
+          path: |
+            release/*.dmg
+            release/*.pkg
 
   build-win:
     runs-on: windows-latest
@@ -81,16 +83,21 @@ jobs:
           body: |
             ## Download
 
-            | Platform | File |
-            |----------|------|
-            | macOS (Apple Silicon) | `*-arm64.dmg` |
-            | macOS (Intel) | `*.dmg` (without arm64) |
-            | Windows 10/11 | `*.exe` |
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | macOS (Apple Silicon) | `*-arm64.pkg` | ✅ Recommended — installs automatically |
+            | macOS (Intel) | `*-x64.pkg` | ✅ Recommended — installs automatically |
+            | macOS (Apple Silicon) | `*-arm64.dmg` | Manual drag-to-Applications |
+            | macOS (Intel) | `*-x64.dmg` | Manual drag-to-Applications |
+            | Windows 10/11 | `*.exe` | |
 
-            **macOS note:** If you see "damaged and can't be opened", open Terminal and run:
+            **macOS PKG:** Opens a standard installer wizard and removes the Gatekeeper warning automatically. Right-click → Open if macOS asks.
+
+            **macOS DMG (manual):** If you use the DMG instead, open Terminal and run once:
             ```
             xattr -cr /Applications/Bragg\ Manager.app
             ```
           files: |
             artifacts/mac/*.dmg
+            artifacts/mac/*.pkg
             artifacts/win/*.exe

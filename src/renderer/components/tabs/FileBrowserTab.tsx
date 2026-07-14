@@ -41,11 +41,12 @@ const ListRow = React.memo(function ListRow({ file }: { file: FileMeta }) {
   );
 });
 
-const TYPE_OPTIONS = ['All Types', 'Video', 'Photo', 'Document', 'Audio', 'Archive', 'Temp', 'Other'];
-const LIST_ITEM_H  = 52;
-const GRID_COLS    = 5;
-const THUMB_SIZE   = 110;
-const GRID_ROW_H   = THUMB_SIZE * 0.75 + 44; // thumb + label + gap
+const TYPE_OPTIONS  = ['All Types', 'Video', 'Photo', 'Document', 'Audio', 'Archive', 'Temp', 'Other'];
+const LIST_ITEM_H   = 52;
+const GRID_COLS     = 5;
+const THUMB_SIZE    = 110;
+const GRID_ROW_H    = THUMB_SIZE * 0.75 + 44; // thumb + label + gap
+const MAX_DISPLAYED = 10_000; // browser layout degrades above ~5M px (10k × 52px = 520k px)
 
 type ViewMode = 'list' | 'grid';
 type SortBy   = 'size' | 'date' | 'name';
@@ -80,7 +81,7 @@ export default function FileBrowserTab({ files }: Props) {
     setShowBackToTop(false);
   };
 
-  const filtered = useMemo(() => {
+  const { filtered, totalMatches } = useMemo(() => {
     const q = query.toLowerCase();
     let result = files.filter(f => {
       const matchQuery = !q || f.name.toLowerCase().includes(q) || f.path.toLowerCase().includes(q);
@@ -90,7 +91,10 @@ export default function FileBrowserTab({ files }: Props) {
     if      (sortBy === 'size') result = [...result].sort((a, b) => b.size - a.size);
     else if (sortBy === 'date') result = [...result].sort((a, b) => b.mtime - a.mtime);
     else                        result = [...result].sort((a, b) => a.name.localeCompare(b.name));
-    return result;
+    const totalMatches = result.length;
+    // Cap display to prevent 18M+ px virtual list height which causes browser layout freeze
+    if (result.length > MAX_DISPLAYED) result = result.slice(0, MAX_DISPLAYED);
+    return { filtered: result, totalMatches };
   }, [files, query, typeFilter, sortBy]);
 
   // Grid mode: group files into rows of GRID_COLS
@@ -146,7 +150,9 @@ export default function FileBrowserTab({ files }: Props) {
         </select>
 
         <span style={{ fontSize: 11, color: COLORS.textMuted, whiteSpace: 'nowrap' }}>
-          {filtered.length.toLocaleString()} files
+          {totalMatches > MAX_DISPLAYED
+            ? `Top ${MAX_DISPLAYED.toLocaleString()} of ${totalMatches.toLocaleString()} — filter to narrow`
+            : `${filtered.length.toLocaleString()} files`}
         </span>
 
         {/* List / Grid toggle */}

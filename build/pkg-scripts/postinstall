@@ -1,0 +1,6 @@
+#!/bin/bash
+# Runs automatically after PKG installation (as root).
+# Removes the macOS quarantine attribute so the app opens without the
+# "damaged and can't be opened" Gatekeeper warning.
+xattr -cr "/Applications/Bragg Manager.app" 2>/dev/null || true
+exit 0
