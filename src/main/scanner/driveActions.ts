@@ -5,6 +5,14 @@ import { exec } from 'child_process';
 
 // ── Drive detection ──────────────────────────────────────────────────────────
 
+/** Resolve a promise with a timeout; resolves to `null` if time expires. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise(resolve => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(v => { clearTimeout(timer); resolve(v); }, () => { clearTimeout(timer); resolve(null); });
+  });
+}
+
 async function getStatfs(mountPath: string): Promise<{ total: number; free: number } | null> {
   try {
     const stats: any = await new Promise((resolve, reject) => {
@@ -24,9 +32,10 @@ async function detectDriveMac(): Promise<DriveInfo | null> {
   for (const name of names) {
     const mountPath = `/Volumes/${name}`;
     try {
-      const stat = await fs.stat(mountPath);
-      if (stat.dev === rootDev) continue; // same device as / → system volume
-      const space = await getStatfs(mountPath);
+      // 4-second timeout per path — prevents hanging on stale NFS/SMB mounts
+      const stat = await withTimeout(fs.stat(mountPath), 4000);
+      if (!stat || stat.dev === rootDev) continue; // timed out or same device as /
+      const space = await withTimeout(getStatfs(mountPath), 4000);
       if (!space) continue;
       return { name, mountPoint: mountPath, capacity: space.total, free: space.free, isRemovable: true };
     } catch { continue; }

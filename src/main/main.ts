@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, globalShortcut } from 'electron';
 import * as path from 'path';
 import { registerIpcHandlers } from './ipcHandlers';
 
@@ -29,6 +29,13 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../../dist-renderer/index.html'));
   }
+
+  // DevTools toggle — Cmd+Option+I (mac) / Ctrl+Shift+I (win/linux)
+  // Available in both dev and packaged builds for performance profiling.
+  const devToolsShortcut = process.platform === 'darwin' ? 'CommandOrControl+Alt+I' : 'CommandOrControl+Shift+I';
+  globalShortcut.register(devToolsShortcut, () => {
+    mainWindow?.webContents.toggleDevTools();
+  });
 }
 
 app.whenReady().then(() => {

@@ -31,7 +31,11 @@ export function registerIpcHandlers(): void {
       // Compute recs and persist cache here — avoids 2× renderer→main IPC round-trips
       const recs = getRuleRecommendations(files);
       const cachePath = path.join(app.getPath('userData'), 'last-scan.json');
-      fse.outputJson(cachePath, { files, recs, dirPath, timestamp: Date.now() }).catch(() => {});
+      // Defer JSON.stringify (synchronous) until after the IPC response is sent,
+      // so the main-process event loop isn't blocked before the renderer receives data.
+      setImmediate(() => {
+        fse.outputJson(cachePath, { files, recs, dirPath, timestamp: Date.now() }).catch(() => {});
+      });
       return { files, recs };
     } catch (err) {
       if (err instanceof ScanCancelledError) return null;

@@ -388,7 +388,7 @@ export default function StorageManager() {
       )}
 
       {/* LANDING */}
-      <div style={{ display: !isScanning && !hasData && cacheLoaded ? 'flex' : 'none', flexDirection: 'column', alignItems: 'center', height: '100%', overflowY: 'auto', padding: '36px 24px' }}>
+      {!isScanning && !hasData && cacheLoaded && <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', overflowY: 'auto', padding: '36px 24px' }}>
         <div style={{ maxWidth: 540, width: '100%' }}>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.03em', marginBottom: 8 }}>
             Good {getTimeOfDay()}, {deviceName} 👋
@@ -446,10 +446,10 @@ export default function StorageManager() {
             </button>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* DASHBOARD (post-scan) */}
-      <div style={{ display: !isScanning && hasData && nav === 'dashboard' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '24px 28px', gap: 16 }}>
+      {!isScanning && hasData && nav === 'dashboard' && <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '24px 28px', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em' }}>Dashboard</h1>
           <button onClick={handleStartScan} disabled={license.scanCooldownActive} style={{
@@ -567,13 +567,13 @@ export default function StorageManager() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* RECOMMENDATIONS */}
-      <div style={{ display: !isScanning && hasData && nav === 'recommendations' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '24px 28px' }}>
-        <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', marginBottom: 20, flexShrink: 0 }}>Recommendations</h1>
-        <ErrorBoundary label="Recommendations failed to load">
-          {hasData && (
+      {!isScanning && hasData && nav === 'recommendations' && (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '24px 28px' }}>
+          <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', marginBottom: 20, flexShrink: 0 }}>Recommendations</h1>
+          <ErrorBoundary label="Recommendations failed to load">
             <RecsTab
               displayedRecs={displayedRecs}
               freedSpace={freedBytes / 1e9}
@@ -581,11 +581,11 @@ export default function StorageManager() {
               onSkip={skipRec}
               onActionSuccess={handleActionSuccess}
             />
-          )}
-        </ErrorBoundary>
-      </div>
+          </ErrorBoundary>
+        </div>
+      )}
 
-      {/* FILE BROWSER — conditionally mounted so hidden tabs don't re-render */}
+      {/* FILE BROWSER */}
       {!isScanning && hasData && nav === 'files' && (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 28px' }}>
           <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', marginBottom: 20, flexShrink: 0 }}>File Browser</h1>
@@ -596,15 +596,17 @@ export default function StorageManager() {
       )}
 
       {/* EXTERNAL DRIVE */}
-      <div style={{ display: !isScanning && nav === 'drive' ? 'flex' : 'none', flexDirection: 'column', height: '100%', padding: '24px 28px' }}>
-        <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', marginBottom: 20 }}>External Drive</h1>
-        <div style={{ maxWidth: 360 }}>
-          <ExternalDrivePanel
-            aiRecs={displayedRecs}
-            onFilesArchived={ids => removeFiles(ids)}
-          />
+      {!isScanning && nav === 'drive' && (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 28px' }}>
+          <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', marginBottom: 20 }}>External Drive</h1>
+          <div style={{ maxWidth: 360 }}>
+            <ExternalDrivePanel
+              aiRecs={displayedRecs}
+              onFilesArchived={ids => removeFiles(ids)}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, memo } from 'react';
 import { Recommendation } from '../../../shared/types';
 import RecommendationCard from '../RecommendationCard';
 import { COLORS, FONT, formatFileSize } from '../constants';
@@ -14,7 +14,7 @@ interface Props {
 
 type ViewMode = 'list' | 'grid';
 
-export default function RecsTab({ displayedRecs, freedSpace, aiEnabled, onSkip, onActionSuccess }: Props) {
+function RecsTab({ displayedRecs, freedSpace, aiEnabled, onSkip, onActionSuccess }: Props) {
   const [viewMode, setViewMode]       = useState<ViewMode>('list');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -142,3 +142,5 @@ export default function RecsTab({ displayedRecs, freedSpace, aiEnabled, onSkip, 
     </div>
   );
 }
+
+export default memo(RecsTab);
