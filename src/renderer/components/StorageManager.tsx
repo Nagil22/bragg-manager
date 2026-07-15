@@ -569,9 +569,9 @@ export default function StorageManager() {
         )}
       </div>}
 
-      {/* RECOMMENDATIONS */}
-      {!isScanning && hasData && nav === 'recommendations' && (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '24px 28px' }}>
+      {/* RECOMMENDATIONS — always mounted when hasData, toggled via display */}
+      {!isScanning && hasData && (
+        <div style={{ display: nav === 'recommendations' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '24px 28px' }}>
           <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', marginBottom: 20, flexShrink: 0 }}>Recommendations</h1>
           <ErrorBoundary label="Recommendations failed to load">
             <RecsTab

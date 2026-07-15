@@ -157,12 +157,20 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('get-onboarded', async (): Promise<boolean> => {
     const p = path.join(app.getPath('userData'), 'onboarded.json');
-    try { const d = await fse.readJson(p); return d.done === true; } catch { return false; }
+    try {
+      const d = await fse.readJson(p);
+      // If the stored app version differs from the current version (fresh install or
+      // version bump), treat as unboarded so the welcome screen shows again.
+      if (d.appVersion !== app.getVersion()) return false;
+      return d.done === true;
+    } catch {
+      return false;
+    }
   });
 
   ipcMain.handle('set-onboarded', async (): Promise<void> => {
     const p = path.join(app.getPath('userData'), 'onboarded.json');
-    await fse.outputJson(p, { done: true });
+    await fse.outputJson(p, { done: true, appVersion: app.getVersion() });
   });
 
   // ── Shell ─────────────────────────────────────────────────────────────────
