@@ -187,8 +187,13 @@ export function registerIpcHandlers(): void {
     const cachePath = path.join(app.getPath('userData'), 'last-scan.json');
     try {
       const data = await fse.readJson(cachePath);
-      // Cap + sort on load in case cache was written before this fix
-      if (data?.files?.length) data.files = capFiles(data.files);
+      if (!data?.files?.length) return null;
+      // Cap + sort files (handles old caches written before the 100k cap)
+      data.files = capFiles(data.files);
+      // Always re-derive recs from the capped files using the current rule engine.
+      // This fixes old caches that stored 50k+ dup recs (one per group),
+      // and ensures any rule-engine improvements apply without requiring a rescan.
+      data.recs = getRuleRecommendations(data.files);
       return data;
     } catch {
       return null;
