@@ -13,6 +13,21 @@ import { FileMeta, Recommendation, StorageAction } from '../shared/types';
 
 let currentScanController: AbortController | null = null;
 
+const MAX_FILES_RENDERER = 100_000;
+
+/**
+ * Sort files largest-first and cap at MAX_FILES_RENDERER.
+ * Run AFTER ruleEngine (which needs the full set); this caps what goes to the renderer.
+ * Pre-sorting means FileBrowserTab's default "largest first" view needs zero JS sort work.
+ */
+function capFiles(files: FileMeta[]): FileMeta[] {
+  if (files.length <= MAX_FILES_RENDERER) {
+    files.sort((a, b) => b.size - a.size);
+    return files;
+  }
+  return files.sort((a, b) => b.size - a.size).slice(0, MAX_FILES_RENDERER);
+}
+
 export function registerIpcHandlers(): void {
 
   // ── Scan ──────────────────────────────────────────────────────────────────
@@ -28,15 +43,16 @@ export function registerIpcHandlers(): void {
     try {
       const files = await scanDirectory(dirPath, onProgress, signal);
       await incrementScanCount();
-      // Compute recs and persist cache here — avoids 2× renderer→main IPC round-trips
+      // Run rule engine on full file set for accurate recommendations
       const recs = getRuleRecommendations(files);
+      // Cap to 100k largest files — reduces IPC payload from 60MB+ to ~17MB,
+      // and pre-sorts so FileBrowserTab's default view needs zero JS sort work.
+      const cappedFiles = capFiles(files);
       const cachePath = path.join(app.getPath('userData'), 'last-scan.json');
-      // Defer JSON.stringify (synchronous) until after the IPC response is sent,
-      // so the main-process event loop isn't blocked before the renderer receives data.
       setImmediate(() => {
-        fse.outputJson(cachePath, { files, recs, dirPath, timestamp: Date.now() }).catch(() => {});
+        fse.outputJson(cachePath, { files: cappedFiles, recs, dirPath, timestamp: Date.now() }).catch(() => {});
       });
-      return { files, recs };
+      return { files: cappedFiles, recs };
     } catch (err) {
       if (err instanceof ScanCancelledError) return null;
       throw err;
@@ -162,7 +178,10 @@ export function registerIpcHandlers(): void {
   } | null> => {
     const cachePath = path.join(app.getPath('userData'), 'last-scan.json');
     try {
-      return await fse.readJson(cachePath);
+      const data = await fse.readJson(cachePath);
+      // Cap + sort on load in case cache was written before this fix
+      if (data?.files?.length) data.files = capFiles(data.files);
+      return data;
     } catch {
       return null;
     }

@@ -585,9 +585,10 @@ export default function StorageManager() {
         </div>
       )}
 
-      {/* FILE BROWSER */}
-      {!isScanning && hasData && nav === 'files' && (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 28px' }}>
+      {/* FILE BROWSER — always mounted when hasData so the sort runs once, not on every tab switch.
+           display:none is safe because VirtualList is height-capped (no 18M-px layout). */}
+      {!isScanning && hasData && (
+        <div style={{ display: nav === 'files' ? 'flex' : 'none', flexDirection: 'column', height: '100%', padding: '24px 28px' }}>
           <h1 style={{ fontSize: 19, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', marginBottom: 20, flexShrink: 0 }}>File Browser</h1>
           <ErrorBoundary label="File browser failed to load">
             <FileBrowserTab files={files} />

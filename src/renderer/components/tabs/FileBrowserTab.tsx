@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback, memo } from 'react';
 import { FileMeta } from '../../../shared/types';
 import { COLORS, FONT, formatFileSize } from '../constants';
 import VirtualList from '../VirtualList';
@@ -53,7 +53,7 @@ type SortBy   = 'size' | 'date' | 'name';
 
 interface Props { files: FileMeta[]; }
 
-export default function FileBrowserTab({ files }: Props) {
+function FileBrowserTab({ files }: Props) {
   const [query,           setQuery]           = useState('');
   const [typeFilter,      setTypeFilter]       = useState('All Types');
   const [sortBy,          setSortBy]           = useState<SortBy>('size');
@@ -83,6 +83,13 @@ export default function FileBrowserTab({ files }: Props) {
 
   const { filtered, totalMatches } = useMemo(() => {
     const q = query.toLowerCase();
+
+    // Fast-path: files arrive pre-sorted largest-first from the main process.
+    // When no search/filter is active and sort is 'size', skip the O(n log n) sort entirely.
+    if (!q && typeFilter === 'All Types' && sortBy === 'size') {
+      return { filtered: files.slice(0, MAX_DISPLAYED), totalMatches: files.length };
+    }
+
     let result = files.filter(f => {
       const matchQuery = !q || f.name.toLowerCase().includes(q) || f.path.toLowerCase().includes(q);
       const matchType  = typeFilter === 'All Types' || f.type === typeFilter.toLowerCase();
@@ -92,7 +99,6 @@ export default function FileBrowserTab({ files }: Props) {
     else if (sortBy === 'date') result = [...result].sort((a, b) => b.mtime - a.mtime);
     else                        result = [...result].sort((a, b) => a.name.localeCompare(b.name));
     const totalMatches = result.length;
-    // Cap display to prevent 18M+ px virtual list height which causes browser layout freeze
     if (result.length > MAX_DISPLAYED) result = result.slice(0, MAX_DISPLAYED);
     return { filtered: result, totalMatches };
   }, [files, query, typeFilter, sortBy]);
@@ -244,3 +250,5 @@ export default function FileBrowserTab({ files }: Props) {
     </div>
   );
 }
+
+export default memo(FileBrowserTab);
